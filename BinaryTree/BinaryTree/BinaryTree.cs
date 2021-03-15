@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace BinaryTree
 {
@@ -13,13 +14,16 @@ namespace BinaryTree
             }
 
             public T value { get; set; }
+            public Node parent { get; set; }
 
-            Node[] children = new Node[2];
+            private Node[] children = new Node[2];
 
-            public Node(T value)
+            public Node(T value, Node parent)
             {
                 this.value = value;
+                this.parent = parent;
             }
+
 
             public Node left() { return children[(int)ChildDirection.Left];}
             public void left(Node left_child)
@@ -31,6 +35,18 @@ namespace BinaryTree
             {
                 children[(int)ChildDirection.Right] = right_child;
             }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder($"{{value={value}, parent=");
+                sb.Append(parent != null ? $"{parent.value}" : "null");
+                sb.Append(", left=");
+                sb.Append(left() != null ? $"{left().value}" : "null");
+                sb.Append(", right=");
+                sb.Append(right() != null ? $"{right().value}" : "null");
+                sb.Append("}}");
+                return sb.ToString();
+            }
         }
 
 
@@ -39,27 +55,102 @@ namespace BinaryTree
 
         public void insert(T value)
         {
-            var new_node = new Node(value);
-            _root = BSTInsert(_root, new_node);
+            _root = _BSTInsert(_root, value);
+        }
+
+        public void remove(T value)
+        {
+            _root = _BSTRemove(_root, value);
+        }
+
+        public Node find(T value)
+        {
+            return _BSTFind(_root, value);
         }
 
         private Node _root;
 
 
-        private Node BSTInsert(Node _root, Node new_node)
+        private static Node _BSTInsert(Node _root, T value)
         {
             if (_root == null)
-                return new_node;
+                return new Node(value, null);
 
-            if (new_node.value.CompareTo(_root.value) < 0)
+            if (value.CompareTo(_root.value) < 0)
             {
-                _root.left(BSTInsert(_root.left(), new_node));
+                _root.left(_BSTInsert(_root.left(), value));
+                _root.left().parent = _root;
             }
-            else if (new_node.value.CompareTo(_root.value) > 0)
+            else if (value.CompareTo(_root.value) > 0)
             {
-                _root.right(BSTInsert(_root.right(), new_node));
+                _root.right(_BSTInsert(_root.right(), value));
+                _root.right().parent = _root;
             }
             return _root;
+        }
+
+        private static Node _BSTFind(Node _root, T value)
+        {
+            if (_root == null)
+                return null;
+
+            if (value.CompareTo(_root.value) < 0)
+            {
+                return _BSTFind(_root.left(), value);
+            }
+            else if (value.CompareTo(_root.value) > 0)
+            {
+                return _BSTFind(_root.right(), value);
+            }
+            return _root;
+        }
+
+        private static Node _BSTRemove(Node root, T value)
+        {
+            if (root == null)
+                return null;
+
+            if (value.CompareTo(root.value) < 0)
+            {
+                root.left(_BSTRemove(root.left(), value));
+                if (root.left() != null)
+                    root.left().parent = root;
+            }
+            else if (value.CompareTo(root.value) > 0)
+            {
+                root.right(_BSTRemove(root.right(), value));
+                if (root.right() != null)
+                    root.right().parent = root;
+            }
+            else
+            {
+                if (root.right() == null)
+                {
+                    if (root.left() != null)
+                        root.left().parent = null;
+                    return root.left();
+                }
+                else if (root.left() == null)
+                {
+                    if (root.right() != null)
+                        root.right().parent = null;
+                    return root.right();
+                }
+
+                Node in_order_successor = _get_in_order_successor(root.right());
+                root.value = in_order_successor.value;
+                root.right(_BSTRemove(root.right(), value));
+                root.right().parent = root;
+            }
+            return root;
+        }
+
+
+        private static Node _get_in_order_successor(Node node)
+        {
+            if (node.left() == null)
+                return node;
+            return _get_in_order_successor(node.left());
         }
     }
 }
